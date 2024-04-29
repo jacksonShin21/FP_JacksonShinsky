@@ -1,0 +1,169 @@
+---
+title: 'Project: Drug Use By Age'
+author: "Jackson Shinsky"
+date: "`r paste('Last Updated:', Sys.Date())`"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+geometry: left=0.5in,right=0.5in,top=0.5in,bottom=0.5in
+urlcolor: blue
+header-includes: \usepackage{subfig}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, dpi = 300)
+```
+<!-- This part sets up the knit type of the document -->
+
+<!-- The # shows makes a title for the document -->
+
+# What is the correlation between age and drug usuage within the United States?
+
+The drug problem within the United States has seen a drasitic upturn in recent years with no sign of it to be stopping. In recent years we have seen thousands die as a result of drug overdoses nation wide. Drug addiction and drug use is currently at an all time high within the country with a reported 16.7% of all americans aged 12 or older struggling with some sort of substance usage related struggle.
+
+The common assumption is that usage of drugs such as alcohol and marijuana in adolescence directly effects the usage of other drugs that are considered significantly worse. Using the "drug-use-by-age" data table published by fivethirtyeight a media outlet known for data analysis. I want to see what the correlation is between both age and drug addiction and how both coincide with each other. I will be comparing alcohol usage by age as well as the comparison of drug usage between ages.
+<!-- This part shows the head of the drug use csv displaying a short summary of the data. -->
+# The data below is the first 6 rows of the data and shows what we will be classifiying.
+
+<!-- This set of code hides the code and displays a table -->
+
+
+```{r ,echo=FALSE}
+
+# Import Librarys as well as csv
+library(knitr)
+library(kableExtra)
+
+drugusecsv <- read.csv("https://raw.githubusercontent.com/jacksonShin21/Stat184FinalProject/main/drug-use-by-age.csv")
+
+# Get unique age groups from the dataset
+age_groups <- unique(drugusecsv$age)
+
+# Define a function to calculate the total usage of all other drugs excluding alcohol for the specified age group
+calculate_total_other_drugs_usage <- function(data, age_group) {
+  age_group_data <- subset(data, age == age_group)
+  total_other_drugs_usage <- sum(age_group_data$marijuana_use, age_group_data$cocaine_use,
+                                  age_group_data$crack_use, age_group_data$heroin_use,
+                                  age_group_data$hallucinogen_use, age_group_data$inhalant_use,
+                                  age_group_data$pain_releiver_use, age_group_data$oxycontin_use,
+                                  age_group_data$tranquilizer_use, age_group_data$stimulant_use,
+                                  age_group_data$meth_use, age_group_data$sedative_use, na.rm = TRUE)
+  return(total_other_drugs_usage)
+}
+
+# Calculate total usage of all other drugs excluding alcohol for each age group
+total_other_drugs_usage <- sapply(age_groups, calculate_total_other_drugs_usage, data = drugusecsv)
+
+# Calculate alcohol usage for each age group
+alcohol_usage <- drugusecsv$alcohol_use
+
+# Create a table with age groups, alcohol usage, and total usage of all other drugs
+comparison_table <- data.frame("Age" = age_groups,
+                               "Alcohol Usage" = alcohol_usage,
+                               "Total Other Drugs Usage" = total_other_drugs_usage)
+
+#Wrangles data set to ignore outliers that could affect the interpretation of the data.
+comparison_table <- comparison_table[rowSums(comparison_table[, -1]) >= 5, ]
+
+# Remove the redundant "Age" column
+comparison_table <- comparison_table[,-1]
+
+# Print the table with kableExtra without headers
+comparison_table %>%
+  kable("html") %>%
+  kable_styling(full_width = FALSE)
+
+```
+---
+
+
+# Does alcohol usage frequency increase with age directly?
+This data sWith the increase of age alcohol use increases substantially as people get closer and closer to the legal drinking age. As shown in the table the usage is almost directly related to overall other drug usage as you can see alcohol usage go up other drug usage goes up at an even faster rate.
+
+<!-- This set of code hides the code and displays a table -->
+
+
+```{r ,echo=FALSE}
+
+# Convert 'age' to factor
+drugusecsv$age <- factor(drugusecsv$age)
+
+# Find the range of alcohol frequency
+freq_range <- range(drugusecsv$alcohol_frequency)
+
+# Plotting the data with points
+plot(drugusecsv$age, drugusecsv$alcohol_frequency,
+     xlab = "Age",
+     ylab = "Alcohol Use Frequency",
+     main = "Alcohol Use Frequency by Age",
+     ylim = freq_range)
+
+# Add lines connecting the points
+lines(drugusecsv$age, drugusecsv$alcohol_frequency, type = "l")
+
+
+
+
+```
+
+
+## Explanation of the Correlation
+
+As you can see with the presented data as age goes up alcohol use frequency increases drastically with it essentially hitting a complete stoppage at 21. This can be implied by in the US it is the legal drinking age. It also can be attributed to that most people who start the drinking habit usually continue on with it for the rest of their life. As the age of those studied goes up the alcohol usage coincides and goes up with it at the directly resulting as an increase of age results in an increase in overall consumption.
+
+
+---
+
+### Citations:
+
+[Maria, 2015](https://fivethirtyeight.com/features/how-baby-boomers-get-high/)  
+[American Addiction centers, 2024](https://americanaddictioncenters.org/addiction-statistics)
+\newpage
+    
+---   
+
+## A summarization of the Data and drug use within those under 21.
+<!-- This set of code hides the code and displays a table -->
+
+```{r,echo=FALSE}
+minors_data <- subset(drugusecsv, as.numeric(age) < 21)
+
+# Convert drug columns to numeric
+drug_names <- c("alcohol_use", "marijuana_use", "cocaine_use", "crack_use", "heroin_use", "hallucinogen_use", 
+                "inhalant_use", "pain_releiver_use", "oxycontin_use", "tranquilizer_use", "stimulant_use", 
+                "meth_use", "sedative_use")
+
+# Function to convert non-numeric values to NA
+to_numeric <- function(x) {
+  as.numeric(ifelse(is.na(as.numeric(x)), NA, x))
+}
+
+# Apply the function to the drug columns
+minors_data[drug_names] <- lapply(minors_data[drug_names], to_numeric)
+
+# Remove rows with any NA values
+minors_data <- minors_data[complete.cases(minors_data), ]
+
+# Create a summary table
+summary_table <- data.frame(
+  Total_Use = colSums(minors_data[drug_names], na.rm = TRUE),
+  Average_Frequency = colMeans(minors_data[drug_names], na.rm = TRUE)
+)
+
+# Add drug names as row names
+rownames(summary_table) <- drug_names
+
+# Print the summary table in a nice format
+kable(summary_table, align = "c", caption = "Summary of Drug Use Among Individuals Below 21")
+
+```
+This data shows the data as a whole showing what exact drugs that the youth are doing and how frequent they are doing these drugs. The column on the right displays the total frequency of the user ship in those that have been polled. The data is very telling in the overall usage of what most under 21 are taking part in. As expected alcohol is by far the leader in this being that is the only legal drug listed. Second unexpectedly is marijuna with a third of those who classify themselves as drinkers classifying themselves as marijuana users.After Marijuna however we see a massive drop off to roughly only ten percent of the previous group also being cocaine users. After those three it can be seen that the useage and frequency of usage dips off significantly to being mere small groups. Pain killers may be slightly boosted due to there very often distribution by hospitals and care takers alike post surgery.
+<!-- This set of code creates a new page. -->
+
+
+\newpage
+
+## Conclusion
+Overall the data shows how alcohol usage impacts the overall usage of other drugs in minors. What can be taken away from the correlations being brought up in this data is that those that drink as a minor are much more likely to indulge in other drugs that are illegal. The correlation with underage drinking and underage drug use is undeniable. The solution to this problem can be debated upon in a multitude of ways. Whether it be to be even more strict on underage drinking then the police already are to strike more fear into those wanting to try things. Or it could be to loosen up our laws and allow for those younger to endulge and hopefully put a stop to the massive uptake in drug usage by minors.
